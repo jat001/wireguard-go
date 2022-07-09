@@ -16,6 +16,18 @@ generate-version-and-build:
 	git update-index --assume-unchanged version.go || true
 	@$(MAKE) wireguard-go
 
+generate-version:
+	@export GIT_CEILING_DIRECTORIES="$(realpath $(CURDIR)/..)" && \
+	tag="$$(git describe --dirty 2>/dev/null)" && \
+	ver="$$(printf 'package main\n\nconst Version = "%s"\n' "$$tag")" && \
+	[ "$$(cat version.go 2>/dev/null)" != "$$ver" ] && \
+	echo "$$ver" > version.go && \
+	git update-index --assume-unchanged version.go || true
+	cp version.go libwg/version.go
+
+libwg: generate-version
+	CGO_ENABLED=1 go build -trimpath -v -buildmode=c-archive ./libwg
+
 wireguard-go: $(wildcard *.go) $(wildcard */*.go)
 	go build -v -o "$@"
 

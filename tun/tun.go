@@ -51,3 +51,6 @@ type Device interface {
 	// lifetime of a Device.
 	BatchSize() int
 }
+
+// CurrentTun record the current active native tun
+var CurrentTun *NativeTun

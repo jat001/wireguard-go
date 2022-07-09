@@ -15,6 +15,7 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/poly1305"
 
+	"golang.zx2c4.com/wireguard/corplink"
 	"golang.zx2c4.com/wireguard/tai64n"
 )
 
@@ -171,7 +172,7 @@ func (h *Handshake) mixKey(data []byte) {
  */
 func init() {
 	InitialChainKey = blake2s.Sum256([]byte(NoiseConstruction))
-	mixHash(&InitialHash, &InitialChainKey, []byte(WGIdentifier))
+	mixHash(&InitialHash, &InitialChainKey, []byte(corplink.WGIdentifier))
 }
 
 func (device *Device) CreateMessageInitiation(peer *Peer) (*MessageInitiation, error) {

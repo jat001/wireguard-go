@@ -10,7 +10,15 @@ require (
 	gvisor.dev/gvisor v0.0.0-20221203005347-703fd9b7fbc0
 )
 
+// wg-corplink
+require (
+	github.com/vishvananda/netlink v1.1.0
+	golang.zx2c4.com/wireguard/windows v0.5.3
+)
+
 require (
 	github.com/google/btree v1.0.1 // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 )
+
+require github.com/vishvananda/netns v0.0.0-20211101163701-50045581ed74 // indirect

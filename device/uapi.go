@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.zx2c4.com/wireguard/corplink"
 	"golang.zx2c4.com/wireguard/ipc"
 )
 
@@ -137,6 +138,70 @@ func (device *Device) IpcGetOperation(w io.Writer) error {
 	return nil
 }
 
+// handle operation for corplink, examples:
+//   - up=true
+//   - up=false
+//   - mtu=1420
+//   - address=114.5.1.4/19
+func (device *Device) handleCorplinkOperation(k, v string) (bool, error) {
+	getDeviceName := func() (string, error) {
+		name, err := device.tun.device.Name()
+		if err != nil {
+			return name, ipcErrorf(ipc.IpcErrorUnknown, "failed to get device name: %s", err)
+		}
+		return name, nil
+	}
+	switch k {
+	case "up":
+		up, err := strconv.ParseBool(v)
+		if err != nil {
+			return false, ipcErrorf(ipc.IpcErrorInvalid, "invalid up value %s: %s", v, err)
+		}
+		name, err := getDeviceName()
+		if err != nil {
+			return false, err
+		}
+		err = corplink.SetInterfaceUp(name, up)
+		if err != nil {
+			return false, ipcErrorf(ipc.IpcErrorUnknown, "failed to set %s up: %s", name, err)
+		}
+	case "mtu":
+		mtu, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			return false, ipcErrorf(ipc.IpcErrorInvalid, "invalid mtu value %s: %s", v, err)
+		}
+		name, err := getDeviceName()
+		if err != nil {
+			return false, err
+		}
+		err = corplink.SetInterfaceMTU(name, int(mtu))
+		if err != nil {
+			return false, ipcErrorf(ipc.IpcErrorUnknown, "failed to set mtu to %d for %s: %s", mtu, name, err)
+		}
+	case "address":
+		name, err := getDeviceName()
+		if err != nil {
+			return false, err
+		}
+		err = corplink.SetInterfaceAddress(name, v)
+		if err != nil {
+			return false, ipcErrorf(ipc.IpcErrorUnknown, "failed to set addr to %s for %s: %s", v, name, err)
+		}
+	case "route":
+		name, err := getDeviceName()
+		if err != nil {
+			return false, err
+		}
+		err = corplink.AddInterfaceRoute(name, v)
+		if err != nil {
+			return false, ipcErrorf(ipc.IpcErrorUnknown, "failed to set addr to %s for %s: %s", v, name, err)
+		}
+	default:
+		return false, nil
+	}
+	return true, nil
+}
+
 // IpcSetOperation implements the WireGuard configuration protocol "set" operation.
 // See https://www.wireguard.com/xplatform/#configuration-protocol for details.
 func (device *Device) IpcSetOperation(r io.Reader) (err error) {
@@ -165,6 +230,13 @@ func (device *Device) IpcSetOperation(r io.Reader) (err error) {
 			return ipcErrorf(ipc.IpcErrorProtocol, "failed to parse line %q", line)
 		}
 
+		skip, err := device.handleCorplinkOperation(key, value)
+		if err != nil {
+			return err
+		}
+		if skip {
+			continue
+		}
 		if key == "public_key" {
 			if deviceConfig {
 				deviceConfig = false
@@ -178,7 +250,6 @@ func (device *Device) IpcSetOperation(r io.Reader) (err error) {
 			continue
 		}
 
-		var err error
 		if deviceConfig {
 			err = device.handleDeviceLine(key, value)
 		} else {

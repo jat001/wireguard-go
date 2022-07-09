@@ -189,6 +189,7 @@ func CreateTUNFromFile(file *os.File, mtu int) (Device, error) {
 		}
 	}
 
+	CurrentTun = tun
 	return tun, nil
 }
 
