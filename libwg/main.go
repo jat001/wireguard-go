@@ -37,6 +37,7 @@ func uapi(cmdStr *C.cchar_t) *C.char {
 	var result string
 	switch cmds[0] {
 	case "set=1":
+		logger.Verbosef("set uapi")
 		content := strings.TrimPrefix(content, "set=1\n")
 		err := wgDevice.IpcSetOperation(strings.NewReader(content))
 		var status *device.IPCError
@@ -49,6 +50,7 @@ func uapi(cmdStr *C.cchar_t) *C.char {
 			result = fmt.Sprintf("errno=%d\n\n", status.ErrorCode())
 		}
 	case "get=1":
+		logger.Verbosef("get uapi")
 		var err error
 		result, err = wgDevice.IpcGet()
 		var status *device.IPCError
@@ -61,6 +63,7 @@ func uapi(cmdStr *C.cchar_t) *C.char {
 			result += fmt.Sprintf("errno=%d\n\n", status.ErrorCode())
 		}
 	default:
+		logger.Verbosef("unknown uapi")
 		result = fmt.Sprintf("errno=%d\n\n", ipc.IpcErrorUnknown)
 	}
 	return C.CString(result)
@@ -101,8 +104,9 @@ func startWg(logLevel C.int, interfaceName *C.cchar_t) C.int {
 
 	wgDevice = device.NewDevice(tunDevice, conn.NewDefaultBind(), logger)
 
-	logger.Verbosef("Device started")
-	return ExitSetupSuccess
+	logger.Verbosef("Device %s started", name)
+	ret := upDeviceForWindows(wgDevice)
+	return C.int(ret)
 }
 
 func main() {
