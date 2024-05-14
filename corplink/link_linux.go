@@ -62,5 +62,5 @@ func AddInterfaceRoute(name, network string) error {
 		Dst:       net,
 		LinkIndex: link.Attrs().Index,
 	}
-	return netlink.RouteAdd(route)
+	return netlink.RouteReplace(route)
 }
